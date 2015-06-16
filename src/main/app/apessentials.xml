@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="CE-3.6.1"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
 http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
-    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9080" doc:name="HTTP Listener Configuration"/>
     <http:request-config name="United_REST_Request_Configuration" host="localhost" port="8112" basePath="essentials/united/flights" doc:name="HTTP Request Configuration"/>
     <http:request-config name="Bank_REST__Request_Configuration" host="localhost" port="8112" basePath="build/banking/rest" doc:name="HTTP Request Configuration">
         <http:raml-api-configuration location="http://localhost:8112/build/banking/raml"/>
@@ -22,7 +22,12 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     <ws:consumer-config name="Delta_Web_Service_Consumer" wsdlLocation="http://localhost:8112/essentials/delta?wsdl" service="TicketServiceService" port="TicketServicePort" serviceAddress="http://localhost:8112/essentials/delta" doc:name="Web Service Consumer"/>
     <db:mysql-config name="Training_MySQL_Configuration" host="localhost" port="4406" user="mule" password="mule" database="training" doc:name="MySQL Configuration"/>
     <jms:activemq-connector name="Active_MQ" specification="1.1" brokerURL="tcp://localhost:61111" validateConnections="true" doc:name="Active MQ"/>
-    <sfdc:config name="Salesforce__Basic_authentication" username="2bryan.heidenreich@fotlinc.com" password="Tee55furry%" securityToken="EW3pGxApuhY5Vza9nFBZOWnY" doc:name="Salesforce: Basic authentication"/>
+    <sfdc:config name="Salesforce__Basic_authentication" username="2bryan.heidenreich@fotlinc.com" password="Tee55furry%" securityToken="EW3pGxApuhY5Vza9nFBZOWnY" doc:name="Salesforce: Basic authentication"/> 
+    <flow name="getFlightFormFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="GET" doc:name="HTTP"/>
+        <parse-template location="FlightFinder.html" doc:name="Parse Template"/>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
     <flow name="getUnitedFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/united" allowedMethods="GET" doc:name="HTTP"/>
         <set-variable variableName="destination" value="#[(message.inboundProperties.'http.query.params'.code == empty) ? 'SFO' : message.inboundProperties.'http.query.params'.code]" doc:name="Set Variable"/>
