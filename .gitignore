@@ -4,5 +4,10 @@ plugins/
 .studio/
 .classpath
 .settings/
+<<<<<<< HEAD
 _classpath
 _project
+=======
+_project
+_classpath
+>>>>>>> b67b02d40f0aac4ee587c0f5b09225495df7a407
