@@ -3,3 +3,6 @@ META-INF/
 plugins/
 .studio/
 .classpath
+.settings/
+_project
+_classpath
