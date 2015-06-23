@@ -22,6 +22,18 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     <db:mysql-config name="Training_MySQL_Configuration" host="localhost" port="4406" user="mule" password="mule" database="training" doc:name="MySQL Configuration"/>
     <jms:activemq-connector name="Active_MQ" specification="1.1" brokerURL="tcp://localhost:61111" validateConnections="true" doc:name="Active MQ"/>
     <sfdc:config name="Salesforce__Basic_authentication" username="jdfoster02@gmail.com" password="Jdf2689jdf!" securityToken="qFr8eXYFaL8yDHz343YWMFQRe" doc:name="Salesforce: Basic authentication"/>
+    <mulexml:jaxb-context name="JAXB_Context" packageNames="com.mulesoft.training" doc:name="JAXB Context"/>
+    <flow name="getFlightFormFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="GET" doc:name="HTTP"/>
+        <parse-template location="FlightFinder.html" doc:name="Parse Template"/>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="getFlightsFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="POST" doc:name="HTTP"/>
+        <json:json-to-object-transformer returnClass="com.mulesoft.training.FlightRequest" doc:name="JSON to Object"/>
+        <set-variable variableName="destination" value="#[payload.destination]" doc:name="Variable"/>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
     <flow name="getUnitedFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/united" allowedMethods="GET" doc:name="HTTP"/>
         <set-variable variableName="destination" value="#[(message.inboundProperties.'http.query.params'.code == empty) ? 'SFO' : message.inboundProperties.'http.query.params'.code]" doc:name="Set Destination"/>
@@ -30,11 +42,15 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
                 <http:uri-param paramName="destination" value="#[flowVars.destination]"/>
             </http:request-builder>
         </http:request>
+        <json:json-to-object-transformer returnClass="com.mulesoft.training.FlightArray" doc:name="JSON to Object"/>
+        <set-payload value="#[payload.flights]" doc:name="Set Payload to Flights"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getDeltaFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/delta" allowedMethods="GET" doc:name="HTTP"/>
         <ws:consumer config-ref="Delta_Web_Service_Consumer" operation="listAllFlights" doc:name="Web Service Consumer"/>
-        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <mulexml:jaxb-xml-to-object-transformer returnClass="com.mulesoft.training.FlightArray" jaxbContext-ref="JAXB_Context" doc:name="XML to JAXB Object"/>
+        <set-payload value="#[payload.flights]" doc:name="Set Payload to Flights"/>
         <logger level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getAmericanFlightsFlow">
