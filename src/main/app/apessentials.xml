@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="CE-3.6.1"
+<mule xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -12,7 +12,8 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
 http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/current/mule-sfdc.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd">
     <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8080" doc:name="HTTP Listener Configuration"/>
     <http:request-config name="United_REST_Request_Configuration" host="localhost" port="8112" basePath="essentials/united/flights" doc:name="HTTP Request Configuration"/>
     <http:request-config name="Bank_REST_Request_Configuration" host="localhost" port="8112" basePath="build/banking/rest" doc:name="HTTP Request Configuration">
@@ -23,6 +24,8 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     <jms:activemq-connector name="Active_MQ" specification="1.1" brokerURL="tcp://localhost:61111" validateConnections="true" doc:name="Active MQ"/>
     <sfdc:config name="Salesforce__Basic_authentication" username="jdfoster02@gmail.com" password="Jdf2689jdf!" securityToken="qFr8eXYFaL8yDHz343YWMFQRe" doc:name="Salesforce: Basic authentication"/>
     <mulexml:jaxb-context name="JAXB_Context" packageNames="com.mulesoft.training" doc:name="JAXB Context"/>
+    <data-mapper:config name="List_Map__To_Pojo" transformationGraphPath="list_map__to_pojo.grf" doc:name="List_Map__To_Pojo"/>
+    <data-mapper:config name="String_To_Xml_findFlight_" transformationGraphPath="string_to_xml_findflight_.grf" doc:name="String_To_Xml_findFlight_"/>
     <flow name="getFlightFormFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="GET" doc:name="HTTP"/>
         <parse-template location="FlightFinder.html" doc:name="Parse Template"/>
@@ -48,9 +51,16 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     </flow>
     <flow name="getDeltaFlightsFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/delta" allowedMethods="GET" doc:name="HTTP"/>
-        <ws:consumer config-ref="Delta_Web_Service_Consumer" operation="listAllFlights" doc:name="Web Service Consumer"/>
+        <set-variable variableName="destination" value="#[(message.inboundProperties.'http.query.params'.code == empty) ? 'SFO' : message.inboundProperties.'http.query.params'.code]" doc:name="Set Destination"/>
+        <data-mapper:transform config-ref="String_To_Xml_findFlight_" input-ref="#[message.inboundProperties[&quot;http.method&quot;]]" doc:name="String To Xml&lt;findFlight&gt;">
+            <data-mapper:input-arguments>
+                <data-mapper:input-argument key="destination">SFO</data-mapper:input-argument>
+            </data-mapper:input-arguments>
+        </data-mapper:transform>
+        <ws:consumer config-ref="Delta_Web_Service_Consumer" operation="findFlight" doc:name="Web Service Consumer"/>
         <mulexml:jaxb-xml-to-object-transformer returnClass="com.mulesoft.training.FlightArray" jaxbContext-ref="JAXB_Context" doc:name="XML to JAXB Object"/>
         <set-payload value="#[payload.flights]" doc:name="Set Payload to Flights"/>
+        <custom-transformer class="com.mulesoft.training.FlightSortTransformer" doc:name="Java"/>
         <logger level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getAmericanFlightsFlow">
@@ -61,7 +71,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 FROM flights
 WHERE toAirport = #[flowVars.destination]]]></db:parameterized-query>
         </db:select>
-        <object-to-string-transformer doc:name="Object to String"/>
+        <data-mapper:transform config-ref="List_Map__To_Pojo" doc:name="List&lt;Map&gt; To Pojo"/>
         <logger message="#[payload]" level="INFO" doc:name="Logger"/>
     </flow>
     <flow name="getBankAccountsFlow">
