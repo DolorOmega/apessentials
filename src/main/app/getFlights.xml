@@ -36,9 +36,13 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <parse-template location="FlightFinder.html" doc:name="Parse Template"/>
         <logger level="INFO" doc:name="Logger"/>
     </flow>
-    <flow name="getFlightsFlow">
-        <http:listener config-ref="HTTP_Listener_Configuration" path="/flights" allowedMethods="POST" doc:name="HTTP"/>
+    <sub-flow name="getFlightsFromForm">
+        <http:request config-ref="" path="" method="" doc:name="HTTP"/>
         <json:json-to-object-transformer returnClass="com.mulesoft.training.FlightRequest" doc:name="JSON to Object"/>
+        <flow-ref name="getFlightsFlow" doc:name="getFlightsFlow"/>
+    </sub-flow>
+    <flow name="getFlightsFlow">
+
         <set-variable variableName="destination" value="#[payload.destination]" doc:name="Variable"/>
         <logger level="INFO" doc:name="Logger"/>
         <choice doc:name="Choice">
